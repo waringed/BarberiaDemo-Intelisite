@@ -312,6 +312,9 @@ const App: React.FC = () => {
           contact: SectionId.CONTACT,
           contacto: SectionId.CONTACT,
           citas: SectionId.CONTACT,
+          cita: SectionId.CONTACT,
+          agendar: SectionId.CONTACT,
+          reserva: SectionId.CONTACT,
           social: SectionId.SOCIAL,
           redes: SectionId.SOCIAL,
         };
