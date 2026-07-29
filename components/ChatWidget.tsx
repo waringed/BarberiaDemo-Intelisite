@@ -698,7 +698,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
         >
           {/* Orange Handle on the Left Edge of Drawer - moves fluidly with drawer */}
           <div 
-            className="absolute -left-6 top-1/2 -translate-y-1/2 h-36 w-8 flex items-center justify-center cursor-pointer z-50 touch-none group"
+            className="absolute -left-5 top-1/2 -translate-y-1/2 h-36 w-6 flex items-center justify-end pr-0.5 cursor-pointer z-50 touch-none group select-none"
             onClick={(e) => {
               e.stopPropagation();
               if (!isMoved) {
@@ -711,9 +711,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
             }}
             title={isMobileMinimized ? "Abrir asistente de IA (desliza o toca)" : "Cerrar asistente"}
           >
-            <div className={`w-1.5 h-16 bg-orange-400/80 hover:bg-orange-400 rounded-full shadow-md border border-orange-300/50 transition-all ${
-              isMobileMinimized ? 'animate-pulse' : ''
-            }`} />
+            <div 
+              className="w-2.5 h-16 bg-orange-500/90 hover:bg-orange-500 shadow-md border-l border-y border-amber-300/60 transition-all"
+              style={{
+                clipPath: 'polygon(0 15%, 100% 0, 100% 100%, 0 85%)',
+                borderTopLeftRadius: '3px',
+                borderBottomLeftRadius: '3px'
+              }}
+            />
           </div>
 
             {/* Chat Header Drawer - Drag-friendly area */}
