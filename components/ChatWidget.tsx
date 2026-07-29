@@ -672,24 +672,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
 
       {/* 2. MOBILE LAYOUT (Visible only on screens under 768px) */}
       <div className="md:hidden">
-        {/* Fixed Orange Handle on right screen edge when closed */}
-        {isMobileMinimized && (
-          <div 
-            className="fixed right-0 top-1/2 -translate-y-1/2 h-36 w-8 z-[85] flex items-center justify-end pr-0.5 cursor-pointer touch-none select-none"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onTouchCancel={handleTouchCancel}
-            onClick={(e) => {
-              e.stopPropagation();
-              openMobileChat();
-            }}
-            title="Abrir asistente de IA (desliza o toca)"
-          >
-            <div className="w-1.5 h-16 bg-orange-400/80 rounded-l-full shadow-md border-l border-y border-orange-300/50 pointer-events-none" />
-          </div>
-        )}
-
         {/* Full screen backdrop click-outside triggers close */}
         <div 
           className={`fixed inset-0 z-[70] backdrop-blur-xs cursor-pointer transition-opacity duration-300 ${
@@ -714,19 +696,25 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
           onTouchEnd={handleTouchEnd}
           onTouchCancel={handleTouchCancel}
         >
-          {/* Orange Handle on the Left Edge of open drawer */}
-          {!isMobileMinimized && (
-            <div 
-              className="absolute -left-6 top-1/2 -translate-y-1/2 h-36 w-8 flex items-center justify-center cursor-pointer z-50 touch-none group"
-              onClick={(e) => {
-                e.stopPropagation();
-                closeMobileChat();
-              }}
-              title="Cerrar asistente"
-            >
-              <div className="w-1.5 h-16 bg-orange-400/80 hover:bg-orange-400 rounded-full shadow-md border border-orange-300/50 transition-all" />
-            </div>
-          )}
+          {/* Orange Handle on the Left Edge of Drawer - moves fluidly with drawer */}
+          <div 
+            className="absolute -left-6 top-1/2 -translate-y-1/2 h-36 w-8 flex items-center justify-center cursor-pointer z-50 touch-none group"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isMoved) {
+                if (isMobileMinimized) {
+                  openMobileChat();
+                } else {
+                  closeMobileChat();
+                }
+              }
+            }}
+            title={isMobileMinimized ? "Abrir asistente de IA (desliza o toca)" : "Cerrar asistente"}
+          >
+            <div className={`w-1.5 h-16 bg-orange-400/80 hover:bg-orange-400 rounded-full shadow-md border border-orange-300/50 transition-all ${
+              isMobileMinimized ? 'animate-pulse' : ''
+            }`} />
+          </div>
 
             {/* Chat Header Drawer - Drag-friendly area */}
             <div 
