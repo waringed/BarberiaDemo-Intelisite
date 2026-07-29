@@ -56,6 +56,30 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
   const [isGestureDecided, setIsGestureDecided] = useState(false);
   const [dragDirection, setDragDirection] = useState<'horizontal' | 'vertical' | null>(null);
 
+  // Helper functions to open and close chat safely resetting all touch/drag state
+  const openMobileChat = () => {
+    setIsMobileMinimized(false);
+    setIsDesktopMinimized(false);
+    setTranslateX(0);
+    setIsDragging(false);
+    setIsDraggingToOpen(false);
+    setStartX(null);
+    setStartY(null);
+    setIsGestureDecided(false);
+    setDragDirection(null);
+  };
+
+  const closeMobileChat = () => {
+    setIsMobileMinimized(true);
+    setTranslateX(0);
+    setIsDragging(false);
+    setIsDraggingToOpen(false);
+    setStartX(null);
+    setStartY(null);
+    setIsGestureDecided(false);
+    setDragDirection(null);
+  };
+
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
     // Don't intercept touches if user is typing, tapping buttons/links or focusing inputs
@@ -143,19 +167,22 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
       if (isDraggingToOpen) {
         // If we pulled the panel in so that remaining offscreen is less than 70% (meaning we dragged > 30% of width)
         if (translateX < panelWidthVal * 0.7) {
-          setIsMobileMinimized(false);
+          openMobileChat();
         } else {
-          setIsMobileMinimized(true);
+          closeMobileChat();
         }
       } else {
         // If released and dragged past 30% of panel width, close it
         if (translateX > panelWidthVal * 0.3) {
-          setIsMobileMinimized(true);
+          closeMobileChat();
+        } else {
+          setTranslateX(0);
         }
       }
+    } else {
+      setTranslateX(0);
     }
     
-    setTranslateX(0);
     setStartX(null);
     setStartY(null);
     setIsGestureDecided(false);
@@ -171,8 +198,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
   // Listen to mobile header search bar triggers
   useEffect(() => {
     const handleOpenFull = () => {
-      setIsMobileMinimized(false);
-      setIsDesktopMinimized(false);
+      openMobileChat();
       // Let the slideUp animation complete, then focus
       setTimeout(() => {
         inputRef.current?.focus();
@@ -438,8 +464,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
         const message = event.detail;
         
         // Open Chat if closed
-        setIsDesktopMinimized(false);
-        setIsMobileMinimized(false);
+        openMobileChat();
 
         // Add User Message immediately
         const userMsgId = `user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -694,10 +719,11 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
         {/* Swipe-to-open touch zone on the right edge */}
         {isMobileMinimized && (
           <div 
-            className="fixed right-0 top-0 h-full w-6 z-[65] bg-transparent cursor-w-resize"
+            className="fixed right-0 top-16 bottom-20 w-5 z-[40] bg-transparent cursor-w-resize"
             onTouchStart={handleOpenTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
+            onClick={openMobileChat}
           />
         )}
 
@@ -709,7 +735,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
               backgroundColor: `rgba(0, 0, 0, ${backdropOpacity})`,
               transition: isDragging ? 'none' : 'background-color 0.3s ease-out'
             }}
-            onClick={() => setIsMobileMinimized(true)}
+            onClick={closeMobileChat}
           />
         )}
 
@@ -767,7 +793,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
               
               {/* Corner X Close Button */}
               <button 
-                onClick={() => setIsMobileMinimized(true)} 
+                onClick={closeMobileChat} 
                 className="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center border border-white/5 active:scale-90 transition-transform cursor-pointer flex-shrink-0"
               >
                 <X size={14} />
