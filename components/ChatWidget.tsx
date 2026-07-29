@@ -47,172 +47,101 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
   const prevSectionRef = useRef<SectionId>(SectionId.HERO);
   const inputRef = useRef<HTMLInputElement>(null);
   
-  // Swipe-right close and Swipe-left open gesture state
+  // Swipe gesture state
   const [startX, setStartX] = useState<number | null>(null);
   const [startY, setStartY] = useState<number | null>(null);
-  const [translateX, setTranslateX] = useState<number>(0);
+  const [dragOffset, setDragOffset] = useState<number>(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [isDraggingToOpen, setIsDraggingToOpen] = useState(false);
-  const [isGestureDecided, setIsGestureDecided] = useState(false);
-  const [dragDirection, setDragDirection] = useState<'horizontal' | 'vertical' | null>(null);
+  const [isMoved, setIsMoved] = useState(false);
 
   // Helper functions to open and close chat safely resetting all touch/drag state
   const openMobileChat = () => {
     setIsMobileMinimized(false);
     setIsDesktopMinimized(false);
-    setTranslateX(0);
+    setDragOffset(0);
     setIsDragging(false);
-    setIsDraggingToOpen(false);
+    setIsMoved(false);
     setStartX(null);
     setStartY(null);
-    setIsGestureDecided(false);
-    setDragDirection(null);
   };
 
   const closeMobileChat = () => {
     setIsMobileMinimized(true);
-    setTranslateX(0);
+    setDragOffset(0);
     setIsDragging(false);
-    setIsDraggingToOpen(false);
+    setIsMoved(false);
     setStartX(null);
     setStartY(null);
-    setIsGestureDecided(false);
-    setDragDirection(null);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    // Don't intercept touches if user is typing, tapping buttons/links or focusing inputs
+    // Don't start drag if user is interacting with interactive controls (buttons, inputs, links)
     if (target.closest('button') || target.closest('input') || target.closest('a') || target.closest('textarea')) {
       return;
     }
     setStartX(e.touches[0].clientX);
     setStartY(e.touches[0].clientY);
     setIsDragging(true);
-    setIsDraggingToOpen(false);
-    setIsGestureDecided(false);
-    setDragDirection(null);
-  };
-
-  const handleOpenTouchStart = (e: React.TouchEvent) => {
-    const clientX = e.touches[0].clientX;
-    const clientY = e.touches[0].clientY;
-    setStartX(clientX);
-    setStartY(clientY);
-    setIsDragging(true);
-    setIsDraggingToOpen(true);
-    setIsGestureDecided(false);
-    setDragDirection(null);
+    setIsMoved(false);
+    setDragOffset(0);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (startX === null || startY === null || !isDragging) return;
-    const currentClientX = e.touches[0].clientX;
-    const currentClientY = e.touches[0].clientY;
-    
-    const diffX = currentClientX - startX;
-    const diffY = Math.abs(currentClientY - startY);
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    const diffX = currentX - startX;
+    const diffY = Math.abs(currentY - startY);
 
-    const panelWidthVal = typeof window !== 'undefined' ? window.innerWidth * 0.75 : 300;
-
-    // If starting swipe from right edge while chat is closed
-    if (isDraggingToOpen && isMobileMinimized) {
-      if (diffX < -8 && Math.abs(diffX) > diffY) {
-        setIsMobileMinimized(false);
-        setTranslateX(panelWidthVal);
-        setIsGestureDecided(true);
-        setDragDirection('horizontal');
-      } else if (diffY > 15 && diffY > Math.abs(diffX)) {
-        setIsDragging(false);
-        setIsDraggingToOpen(false);
-        return;
-      }
-      return;
+    if (Math.abs(diffX) > 5) {
+      setIsMoved(true);
     }
 
-    // If direction is not decided yet, wait until we've moved at least 5 pixels
-    if (!isGestureDecided) {
-      const totalDist = Math.sqrt(diffX * diffX + diffY * diffY);
-      if (totalDist > 5) {
-        if (Math.abs(diffX) > diffY) {
-          setDragDirection('horizontal');
-        } else {
-          setDragDirection('vertical');
-        }
-        setIsGestureDecided(true);
-      }
-      return;
-    }
-
-    if (dragDirection === 'horizontal') {
-      if (isDraggingToOpen) {
-        // Dragging left (negative diffX) pulls the drawer in from the right
-        const pullDistance = -diffX;
-        if (pullDistance > 0) {
-          const transX = Math.max(0, panelWidthVal - pullDistance);
-          setTranslateX(transX);
-          if (e.cancelable) {
-            e.preventDefault(); // Stop default browser navigation gesture
-          }
-        } else {
-          setTranslateX(panelWidthVal);
-        }
-      } else {
-        // Dragging right (positive diffX) pushes the drawer out
-        if (diffX > 0) {
-          setTranslateX(diffX);
-          if (e.cancelable) {
-            e.preventDefault();
-          }
-        } else {
-          setTranslateX(0);
-        }
+    // Only apply horizontal drag if horizontal distance exceeds vertical distance
+    if (Math.abs(diffX) > diffY) {
+      setDragOffset(diffX);
+      if (e.cancelable) {
+        e.preventDefault();
       }
     }
   };
 
   const handleTouchEnd = () => {
-    if (isDraggingToOpen && isMobileMinimized) {
-      setIsDragging(false);
-      setIsDraggingToOpen(false);
-      setStartX(null);
-      setStartY(null);
-      return;
-    }
-
+    if (!isDragging) return;
     setIsDragging(false);
     const panelWidthVal = typeof window !== 'undefined' ? window.innerWidth * 0.75 : 300;
-    
-    if (dragDirection === 'horizontal') {
-      if (isDraggingToOpen) {
-        // If pulled drawer in significantly (>20% of panel width)
-        if (translateX < panelWidthVal * 0.8) {
-          openMobileChat();
-        } else {
-          closeMobileChat();
-        }
+
+    if (isMobileMinimized) {
+      // Was closed. User dragged left (diffX < 0)
+      if (dragOffset < -30 || dragOffset < -panelWidthVal * 0.15) {
+        openMobileChat();
       } else {
-        // If released and dragged past 30% of panel width, close it
-        if (translateX > panelWidthVal * 0.3) {
-          closeMobileChat();
-        } else {
-          setTranslateX(0);
-        }
+        closeMobileChat();
       }
     } else {
-      setTranslateX(0);
+      // Was open. User dragged right (diffX > 0)
+      if (dragOffset > 30 || dragOffset > panelWidthVal * 0.15) {
+        closeMobileChat();
+      } else {
+        openMobileChat();
+      }
     }
-    
+
     setStartX(null);
     setStartY(null);
-    setIsGestureDecided(false);
-    setDragDirection(null);
-    setIsDraggingToOpen(false);
+    setDragOffset(0);
   };
 
-  // Calculate dynamic backdrop opacity based on horizontal translation
+  // Calculate panelWidth, currentOffsetX, and backdropOpacity dynamically
   const panelWidth = typeof window !== 'undefined' ? window.innerWidth * 0.75 : 300;
-  const dragPercentage = Math.max(0, Math.min(1, translateX / panelWidth));
+  
+  let currentOffsetX = isMobileMinimized ? panelWidth : 0;
+  if (isDragging) {
+    currentOffsetX = Math.max(0, Math.min(panelWidth, (isMobileMinimized ? panelWidth : 0) + dragOffset));
+  }
+
+  const dragPercentage = Math.max(0, Math.min(1, currentOffsetX / panelWidth));
   const backdropOpacity = 0.65 * (1 - dragPercentage);
 
   // Listen to mobile header search bar triggers
@@ -736,55 +665,48 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
 
       {/* 2. MOBILE LAYOUT (Visible only on screens under 768px) */}
       <div className="md:hidden">
-        {/* Swipe-to-open touch zone and visible orange handle on the right edge */}
-        {isMobileMinimized && (
-          <div 
-            className="fixed right-0 top-16 bottom-20 w-12 z-[40] flex items-center justify-end pr-0.5 cursor-pointer touch-pan-y"
-            onTouchStart={handleOpenTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onClick={openMobileChat}
-            title="Abrir asistente de IA (desliza o toca)"
-          >
-            <div className="w-1.5 h-16 bg-orange-400/80 rounded-full shadow-md border border-orange-300/60 transition-all animate-pulse pointer-events-none" />
-          </div>
-        )}
-
         {/* Full screen backdrop click-outside triggers close */}
-        {!isMobileMinimized && (
-          <div 
-            className="fixed inset-0 z-[70] backdrop-blur-xs cursor-pointer"
-            style={{ 
-              backgroundColor: `rgba(0, 0, 0, ${backdropOpacity})`,
-              transition: isDragging ? 'none' : 'background-color 0.3s ease-out'
-            }}
-            onClick={closeMobileChat}
-          />
-        )}
+        <div 
+          className={`fixed inset-0 z-[70] backdrop-blur-xs cursor-pointer transition-opacity duration-300 ${
+            !isMobileMinimized || isDragging ? 'pointer-events-auto' : 'pointer-events-none opacity-0'
+          }`}
+          style={{ 
+            backgroundColor: `rgba(0, 0, 0, ${backdropOpacity})`,
+            transition: isDragging ? 'none' : 'background-color 0.3s ease-out, opacity 0.3s ease-out'
+          }}
+          onClick={closeMobileChat}
+        />
 
-        {/* Almost full screen mobile chat bottom drawer */}
-        {!isMobileMinimized && (
+        {/* Mobile chat drawer - ALWAYS MOUNTED so touch drag events never break */}
+        <div 
+          className="fixed top-0 right-0 w-3/4 h-full flex flex-col bg-slate-900 border-l-2 border-amber-500 shadow-2xl z-[80]"
+          style={{
+            transform: `translate3d(${currentOffsetX}px, 0, 0)`,
+            transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Orange Handle on the Left Edge of Drawer - extends -left-6 so it's always visible on right screen edge when minimized */}
           <div 
-            className={`fixed top-0 right-0 w-3/4 h-full flex flex-col bg-slate-900 border-l-2 border-amber-500 shadow-2xl z-[80] ${
-              isDragging || translateX > 0 ? '' : 'animate-slide-left'
-            }`}
-            style={{
-              transform: isDragging ? `translate3d(${translateX}px, 0, 0)` : 'translate3d(0, 0, 0)',
-              transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            className="absolute -left-6 top-1/2 -translate-y-1/2 h-36 w-8 flex items-center justify-center cursor-pointer z-50 touch-none group"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isMoved) {
+                if (isMobileMinimized) {
+                  openMobileChat();
+                } else {
+                  closeMobileChat();
+                }
+              }
             }}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
+            title={isMobileMinimized ? "Abrir asistente de IA (desliza o toca)" : "Cerrar asistente"}
           >
-            {/* Light Orange Vertical Drag Handle on the Left Edge */}
-            <div 
-              className="absolute -left-1 top-0 h-full w-4 flex items-center justify-center cursor-grab active:cursor-grabbing z-50 group"
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-            >
-              <div className="w-1.5 h-16 bg-orange-400/60 rounded-full shadow-sm border border-orange-300/40 transition-all" />
-            </div>
+            <div className={`w-2 h-16 bg-orange-400 rounded-full shadow-lg border border-orange-300/80 transition-all ${
+              isMobileMinimized ? 'animate-pulse scale-110' : 'opacity-80 hover:opacity-100'
+            }`} />
+          </div>
 
             {/* Chat Header Drawer - Drag-friendly area */}
             <div 
@@ -892,9 +814,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
               </div>
             </div>
           </div>
-        )}
-      </div>
-    </>
+        </div>
+      </>
   );
 };
 
