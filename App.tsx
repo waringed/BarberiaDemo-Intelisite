@@ -543,7 +543,7 @@ const App: React.FC = () => {
                                     </div>
 
                                     {/* BACK SIDE */}
-                                    <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 p-4 sm:p-5 rounded-sm border border-amber-500/50 bg-slate-900/95 transition-all overflow-hidden backdrop-blur-md shadow-2xl flex flex-col justify-between ring-1 ring-amber-500/30">
+                                    <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 p-3.5 sm:p-4 rounded-sm border border-amber-500/50 bg-slate-900/95 transition-all overflow-hidden backdrop-blur-md shadow-2xl flex flex-col justify-between ring-1 ring-amber-500/30">
                                         <div>
                                             <div className="flex justify-between items-center pb-2 mb-2 border-b border-amber-500/20">
                                                 <div>
@@ -772,7 +772,7 @@ const App: React.FC = () => {
         <section 
             id={SectionId.PROMOS}
             ref={(el) => { sectionRefs.current[SectionId.PROMOS] = el; }}
-            className="py-16 md:py-0 md:min-h-screen px-4 sm:px-6 pt-16 md:pt-20 pb-16 md:pb-60 flex flex-col justify-center items-center relative overflow-hidden md:pr-[400px]"
+            className="min-h-screen min-h-[100dvh] px-4 sm:px-6 pt-12 pb-24 md:pt-20 md:pb-60 flex flex-col justify-center items-center relative overflow-hidden md:pr-[400px]"
         >
              <div className="absolute inset-0 z-0 overflow-hidden">
                  {/* Parallax Background - REMOVED MASK */}
@@ -1313,6 +1313,8 @@ const App: React.FC = () => {
                              );
                         }
 
+                        const isTopThree = ['Instagram', 'Facebook', 'TikTok'].includes(social.name);
+
                         // STANDARD RENDERING FOR OTHER ICONS
                         return (
                             <a 
@@ -1348,7 +1350,7 @@ const App: React.FC = () => {
                                 </div>
 
                                 {/* Tooltip on Hover */}
-                                <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 px-3 py-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-xs font-bold text-white opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-20 whitespace-nowrap">
+                                <div className={`${isTopThree ? 'hidden md:block' : ''} absolute -bottom-10 left-1/2 -translate-x-1/2 px-3 py-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-xs font-bold text-white opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-20 whitespace-nowrap`}>
                                     {social.name}
                                 </div>
                             </a>
@@ -1581,7 +1583,7 @@ const App: React.FC = () => {
       {/* MOBILE FLOATING WHATSAPP BUTTON (Bottom Left above Dock) - Icon Only */}
       <button 
           onClick={handleWhatsAppClick}
-          className="md:hidden fixed bottom-16 left-3.5 z-40 w-11 h-11 flex items-center justify-center bg-emerald-600/90 hover:bg-emerald-500 text-white rounded-full shadow-[0_4px_20px_rgba(16,185,129,0.5)] border border-emerald-400/40 backdrop-blur-md active:scale-95 transition-all duration-300 p-2"
+          className="md:hidden fixed bottom-20 left-3.5 z-40 w-11 h-11 flex items-center justify-center bg-emerald-600/90 hover:bg-emerald-500 text-white rounded-full shadow-[0_4px_20px_rgba(16,185,129,0.5)] border border-emerald-400/40 backdrop-blur-md active:scale-95 transition-all duration-300 p-2"
           title="Contactar por WhatsApp"
           aria-label="Contactar por WhatsApp"
       >

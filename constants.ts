@@ -42,7 +42,7 @@ export const SERVICES: ServiceItem[] = [
     description: 'Toalla caliente, aceites esenciales, perfilado con navaja y bálsamo hidratante.',
     duration: '30 minutos',
     includes: ['Vapor de toalla caliente', 'Aceite orgánico hidratante', 'Perfilado navaja tradicional', 'Bálsamo mentolado'],
-    idealFor: 'Barbas medianas o largas que requieren forma y suavidad.',
+    idealFor: 'Barbas medianas o largas que requieren forma.',
     recommendedFrequency: 'Cada 2 semanas'
   },
   {

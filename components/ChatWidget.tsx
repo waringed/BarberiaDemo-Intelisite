@@ -33,13 +33,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // Set isMinimized to false on desktop (>=768px) and true on mobile (<768px) by default
-  const [isMinimized, setIsMinimized] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth < 768;
-    }
-    return true;
-  }); 
+  // Independent state for desktop (starts open by default) and mobile (starts closed by default)
+  const [isDesktopMinimized, setIsDesktopMinimized] = useState(false);
+  const [isMobileMinimized, setIsMobileMinimized] = useState(true); 
 
   // State to track if we are using Real AI or Fallback
   const [isOfflineMode, setIsOfflineMode] = useState(false);
@@ -85,7 +81,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
     setDragDirection('horizontal');
     const panelWidthVal = typeof window !== 'undefined' ? window.innerWidth * 0.75 : 300;
     setTranslateX(panelWidthVal); // Start fully offscreen
-    setIsMinimized(false); // Mount the chat drawer immediately so it becomes visible
+    setIsMobileMinimized(false); // Mount the chat drawer immediately so it becomes visible
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -147,14 +143,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
       if (isDraggingToOpen) {
         // If we pulled the panel in so that remaining offscreen is less than 70% (meaning we dragged > 30% of width)
         if (translateX < panelWidthVal * 0.7) {
-          setIsMinimized(false);
+          setIsMobileMinimized(false);
         } else {
-          setIsMinimized(true);
+          setIsMobileMinimized(true);
         }
       } else {
         // If released and dragged past 30% of panel width, close it
         if (translateX > panelWidthVal * 0.3) {
-          setIsMinimized(true);
+          setIsMobileMinimized(true);
         }
       }
     }
@@ -175,7 +171,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
   // Listen to mobile header search bar triggers
   useEffect(() => {
     const handleOpenFull = () => {
-      setIsMinimized(false);
+      setIsMobileMinimized(false);
+      setIsDesktopMinimized(false);
       // Let the slideUp animation complete, then focus
       setTimeout(() => {
         inputRef.current?.focus();
@@ -186,7 +183,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
   }, []);
 
   // Refs for state access inside async/event closures
-  const isMinimizedRef = useRef(isMinimized);
+  const isMobileMinimizedRef = useRef(isMobileMinimized);
   const messagesRef = useRef(messages);
 
   useEffect(() => {
@@ -194,8 +191,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
   }, [messages]);
 
   useEffect(() => {
-    isMinimizedRef.current = isMinimized;
-  }, [isMinimized]);
+    isMobileMinimizedRef.current = isMobileMinimized;
+  }, [isMobileMinimized]);
   
   // Flag to track if navigation was triggered by the bot and suppress context messages during smooth scrolling
   const isNavigatingViaChatRef = useRef(false);
@@ -225,10 +222,10 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
   };
 
   useEffect(() => {
-    if (!isMinimized) {
+    if (!isDesktopMinimized || !isMobileMinimized) {
       scrollToBottom();
     }
-  }, [messages, isMinimized, isLoading]);
+  }, [messages, isDesktopMinimized, isMobileMinimized, isLoading]);
 
   // Helper to process bot response: extract navigation commands
   const processBotResponse = (rawText: string, userQuery?: string, enableNavigation = true): string => {
@@ -314,7 +311,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
     window.dispatchEvent(new CustomEvent('open-booking-modal-trigger', { detail: url }));
     // Only close chat popup window on mobile devices
     if (window.innerWidth < 768) {
-      setIsMinimized(true);
+      setIsMobileMinimized(true);
     }
   };
 
@@ -441,7 +438,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
         const message = event.detail;
         
         // Open Chat if closed
-        setIsMinimized(false);
+        setIsDesktopMinimized(false);
+        setIsMobileMinimized(false);
 
         // Add User Message immediately
         const userMsgId = `user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -487,58 +485,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
     };
   }, []);
 
-  // Handle Section Changes (Context Awareness)
+  // Handle Section Changes (Disabled automatic proactive context messages per user preference)
   useEffect(() => {
-    // Only trigger if section actually changed and isn't Hero (initial load)
-    if (activeSection !== prevSectionRef.current && activeSection !== SectionId.HERO) {
-      
-      // CHECK FLAG: If we arrived here via Chat Navigation or Scroll, ABORT context message
-      if (isNavigatingViaChatRef.current || Date.now() < suppressContextUntilRef.current) {
-          isNavigatingViaChatRef.current = false;
-          prevSectionRef.current = activeSection;
-          return; 
-      }
-
-      const fetchContextMessage = async () => {
-        const response = await triggerContextMessage(activeSection);
-        
-        if (!response.isFallback && response.text) {
-             setIsOfflineMode(false);
-              // Disable automatic navigation when processing proactive context messages
-              const finalText = processBotResponse(response.text, undefined, false);
-              const contextMsgId = `ctx-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-          
-            setMessages((prev) => {
-                const newHistory = [...prev];
-                // Only remove the previous message if it was also a context trigger
-                const lastMessage = newHistory[newHistory.length - 1];
-                if (lastMessage && lastMessage.role === 'model' && lastMessage.isContextTrigger) {
-                    newHistory.pop();
-                }
-
-                return [
-                ...newHistory,
-                { 
-                    id: contextMsgId, 
-                    role: 'model', 
-                    text: finalText, 
-                    timestamp: Date.now(),
-                    isContextTrigger: true 
-                },
-                ];
-            });
-        }
-      };
-
-      const timer = setTimeout(() => {
-        fetchContextMessage();
-      }, 1200);
-
-      prevSectionRef.current = activeSection;
-      return () => clearTimeout(timer);
-    } else {
-        prevSectionRef.current = activeSection;
-    }
+    prevSectionRef.current = activeSection;
   }, [activeSection]);
 
   const handleSend = async () => {
@@ -625,14 +574,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
       {/* 1. DESKTOP LAYOUT (Visible only on medium screens and up) */}
       <div 
         className={`hidden md:flex fixed z-[80] transition-all duration-500 ease-in-out shadow-[0_20px_60px_rgba(0,0,0,0.5)]
-        ${isMinimized 
+        ${isDesktopMinimized 
           ? 'w-16 h-16 bottom-[60px] right-4 rounded-full items-center justify-center cursor-pointer hover:scale-110 bg-slate-800 border border-white/10' 
           : 'w-[400px] h-[calc(100vh-110px)] top-[90px] right-6 rounded-3xl flex flex-col bg-slate-900 border-2 border-amber-500 shadow-[0_0_25px_rgba(245,158,11,0.3)]'
         }`}
       >
-        {isMinimized ? (
+        {isDesktopMinimized ? (
           <div 
-            onClick={() => setIsMinimized(false)} 
+            onClick={() => setIsDesktopMinimized(false)} 
             className="relative w-full h-full flex items-center justify-center bg-emerald-500 hover:bg-emerald-400 text-white rounded-full shadow-lg border-2 border-slate-700 transition-colors cursor-pointer"
           >
             <Sparkles size={24} className="animate-pulse" />
@@ -663,7 +612,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
                 </div>
               </div>
               <div className="flex items-center text-slate-400">
-                <button onClick={() => setIsMinimized(true)} className="hover:text-white transition-colors p-1 hover:bg-slate-700 rounded-full cursor-pointer flex items-center justify-center">
+                <button onClick={() => setIsDesktopMinimized(true)} className="hover:text-white transition-colors p-1 hover:bg-slate-700 rounded-full cursor-pointer flex items-center justify-center">
                   <Minimize2 size={16} />
                 </button>
               </div>
@@ -743,7 +692,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
       {/* 2. MOBILE LAYOUT (Visible only on screens under 768px) */}
       <div className="md:hidden">
         {/* Swipe-to-open touch zone on the right edge */}
-        {isMinimized && (
+        {isMobileMinimized && (
           <div 
             className="fixed right-0 top-0 h-full w-6 z-[65] bg-transparent cursor-w-resize"
             onTouchStart={handleOpenTouchStart}
@@ -753,19 +702,19 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
         )}
 
         {/* Full screen backdrop click-outside triggers close */}
-        {!isMinimized && (
+        {!isMobileMinimized && (
           <div 
             className="fixed inset-0 z-[70] backdrop-blur-xs cursor-pointer"
             style={{ 
               backgroundColor: `rgba(0, 0, 0, ${backdropOpacity})`,
               transition: isDragging ? 'none' : 'background-color 0.3s ease-out'
             }}
-            onClick={() => setIsMinimized(true)}
+            onClick={() => setIsMobileMinimized(true)}
           />
         )}
 
         {/* Almost full screen mobile chat bottom drawer */}
-        {!isMinimized && (
+        {!isMobileMinimized && (
           <div 
             className={`fixed top-0 right-0 w-3/4 h-full flex flex-col bg-slate-900 border-l-2 border-amber-500 shadow-2xl z-[80] ${
               isDragging || translateX > 0 ? '' : 'animate-slide-left'
@@ -818,7 +767,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
               
               {/* Corner X Close Button */}
               <button 
-                onClick={() => setIsMinimized(true)} 
+                onClick={() => setIsMobileMinimized(true)} 
                 className="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center border border-white/5 active:scale-90 transition-transform cursor-pointer flex-shrink-0"
               >
                 <X size={14} />
