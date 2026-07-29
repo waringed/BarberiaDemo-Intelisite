@@ -712,7 +712,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
             title={isMobileMinimized ? "Abrir asistente de IA (desliza o toca)" : "Cerrar asistente"}
           >
             <div 
-              className="w-2.5 h-16 bg-orange-500/90 hover:bg-orange-500 shadow-md border-l border-y border-amber-300/60 transition-all"
+              className="w-2.5 h-16 bg-orange-400/70 hover:bg-orange-400/90 shadow-sm border-l border-y border-amber-300/40 transition-all"
               style={{
                 clipPath: 'polygon(0 15%, 100% 0, 100% 100%, 0 85%)',
                 borderTopLeftRadius: '3px',
