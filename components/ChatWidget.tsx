@@ -711,14 +711,13 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
             }}
             title={isMobileMinimized ? "Abrir asistente de IA (desliza o toca)" : "Cerrar asistente"}
           >
-            <div 
-              className="w-2.5 h-16 bg-orange-400/70 hover:bg-orange-400/90 shadow-sm border-l border-y border-amber-300/40 transition-all"
-              style={{
-                clipPath: 'polygon(0 15%, 100% 0, 100% 100%, 0 85%)',
-                borderTopLeftRadius: '3px',
-                borderBottomLeftRadius: '3px'
-              }}
-            />
+            <svg 
+              className="w-2.5 h-16 text-orange-400/70 hover:text-orange-400/90 drop-shadow-sm transition-all"
+              viewBox="0 0 10 64" 
+              fill="currentColor"
+            >
+              <path d="M10,0 L10,64 L3,55 C1,53 0,50 0,46 L0,18 C0,14 1,11 3,9 Z" />
+            </svg>
           </div>
 
             {/* Chat Header Drawer - Drag-friendly area */}
