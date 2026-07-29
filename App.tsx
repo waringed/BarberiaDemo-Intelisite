@@ -403,7 +403,7 @@ const App: React.FC = () => {
         <section 
           id={SectionId.HERO} 
           ref={(el) => { sectionRefs.current[SectionId.HERO] = el; }}
-          className="min-h-screen flex flex-col justify-center items-center pt-20 pb-16 md:pt-24 md:pb-28 relative overflow-hidden md:pr-[400px]"
+          className="min-h-screen min-h-[100dvh] flex flex-col justify-center items-center pt-12 pb-24 md:pt-24 md:pb-28 relative overflow-hidden md:pr-[400px]"
         >
           <div className="absolute inset-0 z-0">
              {/* PARALLAX IMAGE: REMOVED MASK, ADDED BOTTOM FADE OVERLAY */}
