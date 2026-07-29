@@ -698,7 +698,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
         >
           {/* Orange Handle on the Left Edge of Drawer - moves fluidly with drawer */}
           <div 
-            className="absolute -left-5 top-1/2 -translate-y-1/2 h-36 w-6 flex items-center justify-end pr-0.5 cursor-pointer z-50 touch-none group select-none"
+            className="absolute -left-6 top-1/2 -translate-y-1/2 h-36 w-7 flex items-center justify-end pr-1.5 cursor-pointer z-50 touch-none group select-none"
             onClick={(e) => {
               e.stopPropagation();
               if (!isMoved) {
