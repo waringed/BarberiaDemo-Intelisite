@@ -101,11 +101,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
     setStartY(clientY);
     setIsDragging(true);
     setIsDraggingToOpen(true);
-    setIsGestureDecided(true);
-    setDragDirection('horizontal');
-    const panelWidthVal = typeof window !== 'undefined' ? window.innerWidth * 0.75 : 300;
-    setTranslateX(panelWidthVal); // Start fully offscreen
-    setIsMobileMinimized(false); // Mount the chat drawer immediately so it becomes visible
+    setIsGestureDecided(false);
+    setDragDirection(null);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -117,6 +114,21 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
     const diffY = Math.abs(currentClientY - startY);
 
     const panelWidthVal = typeof window !== 'undefined' ? window.innerWidth * 0.75 : 300;
+
+    // If starting swipe from right edge while chat is closed
+    if (isDraggingToOpen && isMobileMinimized) {
+      if (diffX < -8 && Math.abs(diffX) > diffY) {
+        setIsMobileMinimized(false);
+        setTranslateX(panelWidthVal);
+        setIsGestureDecided(true);
+        setDragDirection('horizontal');
+      } else if (diffY > 15 && diffY > Math.abs(diffX)) {
+        setIsDragging(false);
+        setIsDraggingToOpen(false);
+        return;
+      }
+      return;
+    }
 
     // If direction is not decided yet, wait until we've moved at least 5 pixels
     if (!isGestureDecided) {
@@ -160,13 +172,21 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
   };
 
   const handleTouchEnd = () => {
+    if (isDraggingToOpen && isMobileMinimized) {
+      setIsDragging(false);
+      setIsDraggingToOpen(false);
+      setStartX(null);
+      setStartY(null);
+      return;
+    }
+
     setIsDragging(false);
     const panelWidthVal = typeof window !== 'undefined' ? window.innerWidth * 0.75 : 300;
     
     if (dragDirection === 'horizontal') {
       if (isDraggingToOpen) {
-        // If we pulled the panel in so that remaining offscreen is less than 70% (meaning we dragged > 30% of width)
-        if (translateX < panelWidthVal * 0.7) {
+        // If pulled drawer in significantly (>20% of panel width)
+        if (translateX < panelWidthVal * 0.8) {
           openMobileChat();
         } else {
           closeMobileChat();
@@ -719,14 +739,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
         {/* Swipe-to-open touch zone and visible orange handle on the right edge */}
         {isMobileMinimized && (
           <div 
-            className="fixed right-0 top-1/2 -translate-y-1/2 h-36 w-6 z-[40] flex items-center justify-end pr-0.5 cursor-pointer touch-none"
+            className="fixed right-0 top-16 bottom-20 w-12 z-[40] flex items-center justify-end pr-0.5 cursor-pointer touch-pan-y"
             onTouchStart={handleOpenTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onClick={openMobileChat}
-            title="Abrir asistente de IA"
+            title="Abrir asistente de IA (desliza o toca)"
           >
-            <div className="w-1.5 h-16 bg-orange-400/80 rounded-full shadow-md border border-orange-300/60 transition-all animate-pulse" />
+            <div className="w-1.5 h-16 bg-orange-400/80 rounded-full shadow-md border border-orange-300/60 transition-all animate-pulse pointer-events-none" />
           </div>
         )}
 
