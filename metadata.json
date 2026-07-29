@@ -1,5 +1,6 @@
 {
-  "name": "Remix: Barbería Demo - SmartSite",
-  "description": "Remix: Barbería Demo - SmartSite",
-  "requestFramePermissions": []
+  "name": "Barbería Elite - SmartSite",
+  "description": "Sitio web interactivo para Barbería Elite con asistente inteligente de estilo y citas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

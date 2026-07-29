@@ -384,25 +384,32 @@ const getFallbackResponse = (input: string): string => {
 };
 
 // Helper function to safely get API key 
-const getApiKey = () => {
+const getApiKey = (): string | undefined => {
   try {
-    // 1. Try VITE_API_KEY from import.meta.env (Common in Vite/Vercel)
-    // We use a try-catch to prevent errors in non-module environments
+    // 1. Try Standard process.env
+    if (typeof process !== 'undefined' && process.env) {
+      if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'undefined' && process.env.GEMINI_API_KEY.trim() !== '') {
+        return process.env.GEMINI_API_KEY.trim();
+      }
+      if (process.env.API_KEY && process.env.API_KEY !== 'undefined' && process.env.API_KEY.trim() !== '') {
+        return process.env.API_KEY.trim();
+      }
+    }
+
+    // 2. Try import.meta.env
     try {
       // @ts-ignore
-      if (import.meta && import.meta.env && import.meta.env.VITE_API_KEY) {
-        // @ts-ignore
-        return import.meta.env.VITE_API_KEY;
+      const metaEnv = import.meta.env;
+      if (metaEnv) {
+        const key = metaEnv.VITE_GEMINI_API_KEY || metaEnv.VITE_API_KEY || metaEnv.GEMINI_API_KEY || metaEnv.API_KEY;
+        if (key && key !== 'undefined' && key.trim() !== '') {
+          return key.trim();
+        }
       }
     } catch (e) {
       // ignore
     }
 
-    // 2. Try Standard process.env (Node/Webpack)
-    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-      return process.env.API_KEY;
-    }
-    
     return undefined;
   } catch (error) {
     return undefined;
@@ -413,25 +420,34 @@ export const initChat = async (): Promise<void> => {
   const apiKey = getApiKey();
   
   if (!apiKey) {
-    console.error("❌ SmartSite Error: API_KEY is missing in environment variables. Falling back to Basic Mode.");
+    console.error("❌ SmartSite Error: API_KEY is missing in environment variables. Operating in Basic Fallback Mode.");
+    chatSession = null;
     return;
   }
 
-  try {
-    const ai = new GoogleGenAI({ apiKey: apiKey });
-    const chat = ai.chats.create({
-      model: "gemini-2.5-flash",
-      config: { systemInstruction: SYSTEM_INSTRUCTION },
-      history: [
-        { role: "user", parts: [{ text: "Hola" }] },
-        { role: "model", parts: [{ text: "¡Qué tal! Bienvenido a Barbería Elite. ¿Listo para renovar tu estilo?" }] },
-      ],
-    });
-    chatSession = chat;
-    console.log("✅ SmartSite: Gemini AI Connected Successfully.");
-  } catch (error) {
-    console.error("❌ SmartSite Error: Failed to initialize Gemini.", error);
+  const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+
+  for (const modelName of modelsToTry) {
+    try {
+      const ai = new GoogleGenAI({ apiKey: apiKey });
+      const chat = ai.chats.create({
+        model: modelName,
+        config: { systemInstruction: SYSTEM_INSTRUCTION },
+        history: [
+          { role: "user", parts: [{ text: "Hola" }] },
+          { role: "model", parts: [{ text: "¡Qué tal! Bienvenido a Barbería Elite. ¿Listo para renovar tu estilo?" }] },
+        ],
+      });
+      chatSession = chat;
+      console.log(`✅ SmartSite: Gemini AI Connected Successfully using ${modelName}.`);
+      return;
+    } catch (error) {
+      console.warn(`⚠️ SmartSite: Failed to initialize Gemini with model ${modelName}:`, error);
+    }
   }
+  
+  console.error("❌ SmartSite Error: Could not initialize Gemini with any model alias.");
+  chatSession = null;
 };
 
 export const sendMessageToGemini = async (message: string): Promise<GeminiResponse> => {
@@ -446,9 +462,26 @@ export const sendMessageToGemini = async (message: string): Promise<GeminiRespon
 
   try {
     const result = await chatSession.sendMessage({ message: message });
-    return { text: cleanResponseText(result.text), isFallback: false };
+    if (result && result.text) {
+      return { text: cleanResponseText(result.text), isFallback: false };
+    }
+    throw new Error("Empty response from Gemini model");
   } catch (error: any) {
-    console.warn("⚠️ API Error during message, using fallback:", error);
+    console.warn("⚠️ API Error during message, attempting session refresh:", error);
+    chatSession = null;
+    await initChat();
+    
+    if (chatSession) {
+      try {
+        const retryResult = await chatSession.sendMessage({ message: message });
+        if (retryResult && retryResult.text) {
+          return { text: cleanResponseText(retryResult.text), isFallback: false };
+        }
+      } catch (retryErr) {
+        console.warn("⚠️ Retry failed:", retryErr);
+      }
+    }
+
     await simulateThinking();
     return { text: getFallbackResponse(message), isFallback: true };
   }
