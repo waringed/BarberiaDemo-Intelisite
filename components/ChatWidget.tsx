@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Scissors, Sparkles, Minimize2, WifiOff, X, ChevronLeft } from 'lucide-react';
+import { Send, Scissors, Sparkles, Minimize2, WifiOff, X } from 'lucide-react';
 import { SectionId, ChatMessage } from '../types';
 import { sendMessageToGemini, triggerContextMessage } from '../services/geminiService';
 
@@ -716,15 +716,18 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
 
       {/* 2. MOBILE LAYOUT (Visible only on screens under 768px) */}
       <div className="md:hidden">
-        {/* Swipe-to-open touch zone on the right edge when closed */}
+        {/* Swipe-to-open touch zone and visible orange handle on the right edge */}
         {isMobileMinimized && (
           <div 
-            className="fixed right-0 top-16 bottom-20 w-8 z-[65] bg-transparent cursor-w-resize"
+            className="fixed right-0 top-1/2 -translate-y-1/2 h-36 w-6 z-[40] flex items-center justify-end pr-0.5 cursor-pointer touch-none"
             onTouchStart={handleOpenTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onClick={openMobileChat}
-          />
+            title="Abrir asistente de IA"
+          >
+            <div className="w-1.5 h-16 bg-orange-400/80 rounded-full shadow-md border border-orange-300/60 transition-all animate-pulse" />
+          </div>
         )}
 
         {/* Full screen backdrop click-outside triggers close */}
@@ -740,44 +743,30 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
         )}
 
         {/* Almost full screen mobile chat bottom drawer */}
-        <div 
-          className={`fixed top-0 right-0 w-3/4 h-full flex flex-col bg-slate-900 border-l-2 border-amber-500 shadow-2xl z-[80] ${
-            isDragging || translateX > 0 ? '' : 'animate-slide-left'
-          }`}
-          style={{
-            transform: isDragging 
-              ? `translate3d(${translateX}px, 0, 0)` 
-              : isMobileMinimized 
-                ? 'translate3d(100%, 0, 0)' 
-                : 'translate3d(0, 0, 0)',
-            transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-          }}
-          onTouchStart={isMobileMinimized ? handleOpenTouchStart : handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          {/* Light Orange Vertical Drag Handle Tab on the Left Edge */}
+        {!isMobileMinimized && (
           <div 
-            className="absolute -left-10 top-1/2 -translate-y-1/2 w-10 h-28 bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 rounded-l-2xl shadow-[-4px_0_20px_rgba(245,158,11,0.6)] border-l-2 border-y-2 border-amber-300/80 flex flex-col items-center justify-center cursor-pointer z-50 transition-transform active:scale-95 group select-none"
-            onTouchStart={isMobileMinimized ? handleOpenTouchStart : handleTouchStart}
+            className={`fixed top-0 right-0 w-3/4 h-full flex flex-col bg-slate-900 border-l-2 border-amber-500 shadow-2xl z-[80] ${
+              isDragging || translateX > 0 ? '' : 'animate-slide-left'
+            }`}
+            style={{
+              transform: isDragging ? `translate3d(${translateX}px, 0, 0)` : 'translate3d(0, 0, 0)',
+              transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+            onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (isMobileMinimized) {
-                openMobileChat();
-              } else {
-                closeMobileChat();
-              }
-            }}
-            title={isMobileMinimized ? "Abrir Asistente Barber-IA" : "Cerrar Asistente"}
           >
-            <Scissors size={15} className="text-slate-950 transform -rotate-45 mb-1 group-hover:rotate-0 transition-transform" />
-            <div className="w-1 h-7 bg-slate-950/40 rounded-full my-0.5" />
-            <ChevronLeft size={16} className={`text-slate-950 stroke-[3] ${isMobileMinimized ? 'animate-pulse' : 'rotate-180'} transition-transform`} />
-          </div>
+            {/* Light Orange Vertical Drag Handle on the Left Edge */}
+            <div 
+              className="absolute -left-1 top-0 h-full w-4 flex items-center justify-center cursor-grab active:cursor-grabbing z-50 group"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              <div className="w-1.5 h-16 bg-orange-400/60 rounded-full shadow-sm border border-orange-300/40 transition-all" />
+            </div>
 
-          {/* Chat Header Drawer - Drag-friendly area */}
+            {/* Chat Header Drawer - Drag-friendly area */}
             <div 
               className="flex items-center justify-between px-3 pt-4 pb-3 border-b border-slate-800 bg-transparent cursor-grab active:cursor-grabbing"
               onTouchStart={handleTouchStart}
@@ -883,8 +872,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
               </div>
             </div>
           </div>
-        </div>
-      </>
+        )}
+      </div>
+    </>
   );
 };
 
