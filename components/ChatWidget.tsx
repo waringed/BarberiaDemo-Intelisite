@@ -76,12 +76,13 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    // Don't start drag if user is interacting with interactive controls (buttons, inputs, links)
+    // Don't start drag if user is interacting with interactive controls (buttons, inputs, links, textarea)
     if (target.closest('button') || target.closest('input') || target.closest('a') || target.closest('textarea')) {
       return;
     }
-    setStartX(e.touches[0].clientX);
-    setStartY(e.touches[0].clientY);
+    const touch = e.touches[0];
+    setStartX(touch.clientX);
+    setStartY(touch.clientY);
     setIsDragging(true);
     setIsMoved(false);
     setDragOffset(0);
@@ -89,16 +90,15 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (startX === null || startY === null || !isDragging) return;
-    const currentX = e.touches[0].clientX;
-    const currentY = e.touches[0].clientY;
-    const diffX = currentX - startX;
-    const diffY = Math.abs(currentY - startY);
+    const touch = e.touches[0];
+    const diffX = touch.clientX - startX;
+    const diffY = Math.abs(touch.clientY - startY);
 
     if (Math.abs(diffX) > 5) {
       setIsMoved(true);
     }
 
-    // Only apply horizontal drag if horizontal distance exceeds vertical distance
+    // Only apply horizontal drag if horizontal movement is dominant
     if (Math.abs(diffX) > diffY) {
       setDragOffset(diffX);
       if (e.cancelable) {
@@ -110,18 +110,17 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
   const handleTouchEnd = () => {
     if (!isDragging) return;
     setIsDragging(false);
-    const panelWidthVal = typeof window !== 'undefined' ? window.innerWidth * 0.75 : 300;
 
     if (isMobileMinimized) {
-      // Was closed. User dragged left (diffX < 0)
-      if (dragOffset < -30 || dragOffset < -panelWidthVal * 0.15) {
+      // Was closed. User dragged left (dragOffset < -15)
+      if (dragOffset < -15) {
         openMobileChat();
       } else {
         closeMobileChat();
       }
     } else {
-      // Was open. User dragged right (diffX > 0)
-      if (dragOffset > 30 || dragOffset > panelWidthVal * 0.15) {
+      // Was open. User dragged right (dragOffset > 20)
+      if (dragOffset > 20) {
         closeMobileChat();
       } else {
         openMobileChat();
@@ -131,6 +130,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
     setStartX(null);
     setStartY(null);
     setDragOffset(0);
+  };
+
+  const handleTouchCancel = () => {
+    setIsDragging(false);
+    setDragOffset(0);
+    setStartX(null);
+    setStartY(null);
+    setIsMoved(false);
   };
 
   // Calculate panelWidth, currentOffsetX, and backdropOpacity dynamically
@@ -665,6 +672,24 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
 
       {/* 2. MOBILE LAYOUT (Visible only on screens under 768px) */}
       <div className="md:hidden">
+        {/* Fixed Orange Handle on right screen edge when closed */}
+        {isMobileMinimized && (
+          <div 
+            className="fixed right-0 top-1/2 -translate-y-1/2 h-36 w-8 z-[85] flex items-center justify-end pr-0.5 cursor-pointer touch-none select-none"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchCancel}
+            onClick={(e) => {
+              e.stopPropagation();
+              openMobileChat();
+            }}
+            title="Abrir asistente de IA (desliza o toca)"
+          >
+            <div className="w-1.5 h-16 bg-orange-400/80 rounded-l-full shadow-md border-l border-y border-orange-300/50 pointer-events-none" />
+          </div>
+        )}
+
         {/* Full screen backdrop click-outside triggers close */}
         <div 
           className={`fixed inset-0 z-[70] backdrop-blur-xs cursor-pointer transition-opacity duration-300 ${
@@ -677,7 +702,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
           onClick={closeMobileChat}
         />
 
-        {/* Mobile chat drawer - ALWAYS MOUNTED so touch drag events never break */}
+        {/* Mobile chat drawer */}
         <div 
           className="fixed top-0 right-0 w-3/4 h-full flex flex-col bg-slate-900 border-l-2 border-amber-500 shadow-2xl z-[80]"
           style={{
@@ -687,26 +712,21 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ activeSection }) => {
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
         >
-          {/* Orange Handle on the Left Edge of Drawer - extends -left-6 so it's always visible on right screen edge when minimized */}
-          <div 
-            className="absolute -left-6 top-1/2 -translate-y-1/2 h-36 w-8 flex items-center justify-center cursor-pointer z-50 touch-none group"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!isMoved) {
-                if (isMobileMinimized) {
-                  openMobileChat();
-                } else {
-                  closeMobileChat();
-                }
-              }
-            }}
-            title={isMobileMinimized ? "Abrir asistente de IA (desliza o toca)" : "Cerrar asistente"}
-          >
-            <div className={`w-2 h-16 bg-orange-400 rounded-full shadow-lg border border-orange-300/80 transition-all ${
-              isMobileMinimized ? 'animate-pulse scale-110' : 'opacity-80 hover:opacity-100'
-            }`} />
-          </div>
+          {/* Orange Handle on the Left Edge of open drawer */}
+          {!isMobileMinimized && (
+            <div 
+              className="absolute -left-6 top-1/2 -translate-y-1/2 h-36 w-8 flex items-center justify-center cursor-pointer z-50 touch-none group"
+              onClick={(e) => {
+                e.stopPropagation();
+                closeMobileChat();
+              }}
+              title="Cerrar asistente"
+            >
+              <div className="w-1.5 h-16 bg-orange-400/80 hover:bg-orange-400 rounded-full shadow-md border border-orange-300/50 transition-all" />
+            </div>
+          )}
 
             {/* Chat Header Drawer - Drag-friendly area */}
             <div 
