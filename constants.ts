@@ -1,5 +1,5 @@
 
-import { ServiceItem, ReviewItem, TeamMember, SocialLink, ProductItem } from './types';
+import { ServiceItem, ReviewItem, TeamMember, SocialLink, ProductItem, StyleGalleryItem } from './types';
 
 // --- CONFIGURACIÓN DE RESERVAS ---
 // Enlace general (usado también para Jay Cruz)
