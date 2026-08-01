@@ -422,7 +422,7 @@ const App: React.FC = () => {
              <div className="absolute bottom-0 left-0 w-full h-32 md:h-64 bg-gradient-to-t from-slate-950 to-transparent z-20"></div>
           </div>
           
-          <div className="relative z-10 text-center px-4 max-w-4xl flex flex-col items-center">
+          <div className="relative z-10 text-center px-4 max-w-4xl flex flex-col items-center -mt-8 md:-mt-10">
             
             {/* HERO BRANDING LOGO - UPDATED WITH RESPONSIVE SIZES */}
             <div className="mb-4 md:mb-8 flex flex-col items-center animate-[fadeInDown_1s_ease-out] group cursor-default">
