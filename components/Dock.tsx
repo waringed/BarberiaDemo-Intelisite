@@ -118,7 +118,7 @@ const Dock: React.FC<DockProps> = ({ activeSection, onNavigate }) => {
       <div className="md:hidden fixed z-50 bottom-0 left-0 w-full transition-all duration-300">
         <div className="
           flex items-center justify-between px-2 py-2 backdrop-blur-xl 
-          bg-slate-950/85 border-t border-white/10 rounded-none shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.8)]
+          bg-slate-950/85 border-t-2 border-amber-500 rounded-none shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.8)]
         ">
           {/* Main 4 items */}
           {mobileMainItems.map((item) => {
